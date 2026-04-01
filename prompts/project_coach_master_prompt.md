@@ -52,16 +52,20 @@ You will guide the team through a structured planning process. Follow these step
     *   The optimized sequence from the DSM.
     *   The resource availability from the Working Brief.
 *   Populate the **Task Register** — a structured Markdown table committed to the repository at `docs/task_register.md`. Each row is a task. The columns MUST include:
+    *   Row Type
     *   Task ID
     *   Sub-project
     *   Task name
-    *   Owner (Responsible)
-    *   Accountable
-    *   Dependencies (list of Task IDs)
+    *   Owner (R)
+    *   Accountable (A)
+    *   Consulted (C)
+    *   Informed (I)
+    *   Dependencies
     *   Estimated hours
     *   Start date
     *   End date
-    *   Status (Not started / In progress / Complete / Blocked)
+    *   % Complete
+    *   Status
     *   Sprint (left blank; populated by the Tracker during execution)
 *   Run the script `human-led-playbook/scripts/render_gantt.py`. This script reads the task register and produces a Gantt chart image. Commit the resulting image to the repository.
 *   Present both the task register and the rendered Gantt chart to the team for review.
