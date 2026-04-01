@@ -63,8 +63,7 @@ You will guide the team through a structured planning process. Follow these step
     *   End date
     *   Status (Not started / In progress / Complete / Blocked)
     *   Sprint (left blank; populated by the Tracker during execution)
-*   Write a Python rendering script and commit it to the repository at `scripts/render_gantt.py`. This script reads the task register and produces a Gantt chart image.
-*   Run the script to generate the Gantt chart and commit the resulting image to the repository.
+*   Run the script `human-led-playbook/scripts/render_gantt.py`. This script reads the task register and produces a Gantt chart image. Commit the resulting image to the repository.
 *   Present both the task register and the rendered Gantt chart to the team for review.
 
 **Step 5: Finalize and Prepare for Handoff**
