@@ -32,11 +32,12 @@ The project moves through three distinct but cyclical phases, each facilitated b
 
 This initial phase is an intensive series of coaching sessions focused on deconstructing the project goal into a concrete plan. The Project Coach guides the team through the following activities:
 
+1.  **Repository Instatiation:** Agree a repository name with the team and create it with an appropriate structure. This is the **Project Repository**, which is the defalut repository for storage of all project artefacts.
 1.  **Requirements Elicitation:** Through a series of structured conversations, the Coach helps the team define the project's objectives, scope, and constraints.
-2.  **Sub-Project Definition:** The project is broken down into loosely coupled sub-projects. For each, the Coach helps the team draft a **Sub-Project Brief** detailing its specific goals, deliverables, and acceptance criteria.
-3.  **Dependency Analysis:** The Coach creates a **Dependency Structure Matrix (DSM)** to map the relationships and sequencing between all defined tasks and sub-projects.
-4.  **Task Register & Plan Generation:** Using the sub-project briefs, the DSM, and the team's availability model, the Coach populates the **Task Register** — a structured table where each row is a task and columns carry all metadata (Task ID, sub-project, task name, owner, accountable person, dependencies, estimated hours, start date, end date, status). The Coach then renders a **Gantt chart** from the task register using a committed rendering script (Python). Both the task register and the rendered Gantt chart are committed to the repository.
-5.  **Review and Approval:** The team reviews the complete plan for feasibility and commitment. Once approved, the planning phase is complete.
+1.  **Sub-Project Definition:** The project is broken down into loosely coupled sub-projects. For each, the Coach helps the team draft a **Sub-Project Brief** detailing its specific goals, deliverables, and acceptance criteria.
+1.  **Dependency Analysis:** The Coach creates a **Dependency Structure Matrix (DSM)** to map the relationships and sequencing between all defined tasks and sub-projects.
+1.  **Task Register & Plan Generation:** Using the sub-project briefs, the DSM, and the team's availability model, the Coach populates the **Task Register** — a structured table where each row is a task and columns carry all metadata (Task ID, sub-project, task name, owner, accountable person, dependencies, estimated hours, start date, end date, status). The Coach then renders a **Gantt chart** from the task register using a committed rendering script (Python). Both the task register and the rendered Gantt chart are committed to the repository.
+1.  **Review and Approval:** The team reviews the complete plan for feasibility and commitment. Once approved, the planning phase is complete.
 
 **Outcome:** An approved Project Plan, ready for handoff to the Project Tracker.
 
