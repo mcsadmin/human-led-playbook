@@ -61,25 +61,32 @@ REQUIRED_COLUMNS = {"task_id", "subproject", "task_name"}
 # ---------------------------------------------------------------------------
 
 MOSCOW_LABEL_GROUP = "MoSCoW"
-MOSCOW_VALUES = {"Must", "Should", "Could", "Won't"}
+# Canonical values must match the exact label names in Linear
+MOSCOW_VALUES = {"Must have", "Should have", "Could have", "Won't have"}
 MOSCOW_ALIASES = {
-    "must have": "Must", "must-have": "Must", "must": "Must",
-    "should have": "Should", "should-have": "Should", "should": "Should",
-    "could have": "Could", "could-have": "Could", "could": "Could",
-    "won't have": "Won't", "wont have": "Won't", "won't": "Won't", "wont": "Won't",
+    # Full forms
+    "must have": "Must have", "must-have": "Must have",
+    "should have": "Should have", "should-have": "Should have",
+    "could have": "Could have", "could-have": "Could have",
+    "won't have": "Won't have", "wont have": "Won't have",
+    # Short forms (used in task register)
+    "must": "Must have",
+    "should": "Should have",
+    "could": "Could have",
+    "won't": "Won't have", "wont": "Won't have",
 }
 
 def normalise_moscow(raw: str) -> Optional[str]:
-    """Normalise a raw MoSCoW string to one of the four canonical values."""
+    """Normalise a raw MoSCoW string to one of the four canonical Linear label names."""
     if not raw:
         return None
     cleaned = raw.strip().lower()
     if cleaned in MOSCOW_ALIASES:
         return MOSCOW_ALIASES[cleaned]
-    # Try capitalised match
-    cap = raw.strip().capitalize()
-    if cap in MOSCOW_VALUES:
-        return cap
+    # Try exact match against canonical values (case-insensitive)
+    for v in MOSCOW_VALUES:
+        if v.lower() == cleaned:
+            return v
     return None
 
 # ---------------------------------------------------------------------------
@@ -202,11 +209,23 @@ class SkillConfig:
                 m.email.lower() == needle or
                 m.display_name.lower() == needle):
                 return m
-        # Fallback: match against the first segment of the email local part
+        # Fallback 1: match against the first segment of the email local part
         # e.g. 'dil' matches 'dil.green@mutualcredit.services'
         for m in self.members:
             local = m.email.split('@')[0].split('.')[0].lower()
             if local == needle:
+                return m
+        # Fallback 2: match against the first segment of the display_name
+        # e.g. 'grace' matches display_name 'grace.tompkins'
+        for m in self.members:
+            display_first = m.display_name.split('.')[0].lower()
+            if display_first == needle:
+                return m
+        # Fallback 3: substring match — needle appears anywhere in the email local part
+        # e.g. 'ronan' matches 'ronanmurphyc1997@gmail.com'
+        for m in self.members:
+            local_full = m.email.split('@')[0].lower()
+            if local_full.startswith(needle):
                 return m
         return None
 
