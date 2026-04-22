@@ -190,7 +190,10 @@ class SkillConfig:
         )
 
     def find_member(self, name_or_email: str) -> Optional[LinearMember]:
-        """Case-insensitive lookup by name, display name, or email."""
+        """Case-insensitive lookup by name, display name, email, or email prefix.
+        Supports first-name matching against the local part of an email address
+        so that 'Dil' matches 'dil.green@mutualcredit.services'.
+        """
         if not name_or_email:
             return None
         needle = name_or_email.strip().lower()
@@ -198,6 +201,12 @@ class SkillConfig:
             if (m.name.lower() == needle or
                 m.email.lower() == needle or
                 m.display_name.lower() == needle):
+                return m
+        # Fallback: match against the first segment of the email local part
+        # e.g. 'dil' matches 'dil.green@mutualcredit.services'
+        for m in self.members:
+            local = m.email.split('@')[0].split('.')[0].lower()
+            if local == needle:
                 return m
         return None
 
@@ -211,10 +220,16 @@ class SkillConfig:
         return None
 
     def find_cycle(self, name: str) -> Optional[LinearCycle]:
-        """Case-insensitive lookup by cycle name."""
+        """Case-insensitive lookup by cycle name.
+        Automatically normalises 'Sprint N' to 'Cycle N' so that task registers
+        using sprint terminology map correctly to Linear's cycle naming.
+        """
         needle = name.strip().lower()
+        # Normalise 'sprint N' -> 'cycle N'
+        import re as _re
+        normalised = _re.sub(r'^sprint\s+(\d+)$', r'cycle \1', needle)
         for c in self.cycles:
-            if c.name.lower() == needle:
+            if c.name.lower() == normalised or c.name.lower() == needle:
                 return c
         return None
 
