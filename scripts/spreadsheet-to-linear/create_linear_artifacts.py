@@ -287,12 +287,7 @@ def ensure_issue(
     elif task.get("status_name"):
         args["state"] = task["status_name"]
 
-    # MoSCoW label
-    labels = []
-    if task.get("moscow"):
-        labels.append(task["moscow"])
-    if labels:
-        args["labels"] = labels
+    # MoSCoW label removed
 
     # Cycle
     if task.get("cycle_id"):
@@ -308,8 +303,7 @@ def ensure_issue(
     if dry_run:
         print(f"    → Would {action.lower()} Issue: '{task['issue_title']}' "
               f"(assignee: {task.get('owner_raw', 'none')}, "
-              f"estimate: {task.get('estimate_label', 'none')}, "
-              f"MoSCoW: {task.get('moscow', 'none')})")
+              f"estimate: {task.get('estimate_label', 'none')})")
         return None
 
     issue_id = (result or {}).get("identifier") or (result or {}).get("id") or existing_id

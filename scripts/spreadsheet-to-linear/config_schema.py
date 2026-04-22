@@ -24,23 +24,26 @@ import os
 # This is the authoritative definition of the expected .xlsx column order.
 # ---------------------------------------------------------------------------
 
+# The 18-column markdown task register layout (0-indexed)
 SPREADSHEET_COLUMNS = {
-    "task_id":            0,   # A — e.g. "T01"
-    "subproject":         1,   # B — Sub-project / Linear Project name
-    "task_name":          2,   # C — Issue title (without ID prefix)
-    "moscow":             3,   # D — Must / Should / Could / Won't
-    "owner_r":            4,   # E — Responsible (maps to Linear Assignee)
-    "accountable_a":      5,   # F — Accountable (description only if ≠ owner)
-    "consulted_c":        6,   # G — Consulted (description only, Project level)
-    "informed_i":         7,   # H — Informed (description only, Project level)
-    "dependencies":       8,   # I — Comma-separated Task IDs (e.g. "T01, T03")
-    "estimated_hours":    9,   # J — Numeric hours (e.g. 6.5)
-    "sprint":            10,   # K — Sprint / Cycle name
-    "end_date":          11,   # L — Due date (ISO format: YYYY-MM-DD)
-    "status":            12,   # M — Backlog / Todo / In Progress / Done
-    "context_why":       13,   # N — Context / Why paragraph (coach-supplied)
-    "task_breakdown":    14,   # O — Sub-steps (newline or <br> separated)
-    "acceptance_criteria": 15, # P — Acceptance criteria (newline or <br> separated)
+    "row_type":           0,   # Row Type (PROJECT, SUBPROJECT, TASK)
+    "task_id":            1,   # Task ID
+    "subproject":         2,   # Sub-project
+    "task_name":          3,   # Task name
+    "owner_r":            4,   # Owner (R)
+    "accountable_a":      5,   # Accountable (A)
+    "consulted_c":        6,   # Consulted (C)
+    "informed_i":         7,   # Informed (I)
+    "dependencies":       8,   # Dependencies
+    "estimated_hours":    9,   # Estimated hours
+    "start_date":        10,   # Start date
+    "end_date":          11,   # End date
+    "percent_complete":  12,   # % Complete
+    "status":            13,   # Status
+    "sprint":            14,   # Sprint
+    "context_why":       15,   # Context / Why
+    "task_breakdown":    16,   # Task Breakdown
+    "acceptance_criteria": 17, # Acceptance Criteria
 }
 
 # Human-readable column names for error messages
@@ -233,7 +236,7 @@ class TaskRecord:
     task_id: str
     subproject: str
     task_name: str
-    moscow_raw: str
+    # moscow_raw removed from schema
     owner_raw: str
     accountable_raw: str
     consulted_raw: str
@@ -248,7 +251,7 @@ class TaskRecord:
     acceptance_criteria: str
 
     # Resolved / derived fields (populated by parse_spreadsheet.py)
-    moscow: Optional[str] = None
+    # moscow removed from schema
     owner_id: Optional[str] = None
     owner_resolved: Optional[str] = None
     dependency_ids: list[str] = field(default_factory=list)   # Task IDs (e.g. ["T01"])
