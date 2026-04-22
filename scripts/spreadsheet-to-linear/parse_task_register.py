@@ -1,18 +1,28 @@
 """
-parse_spreadsheet.py
-====================
-Phase 1 of the spreadsheet-to-linear skill.
+parse_task_register.py
+======================
+Phase 1 of the spreadsheet-to-linear skill (markdown-first variant).
 
-Reads the task register spreadsheet (.xlsx), resolves all names and labels
-against the Linear workspace (using the config from Phase 0), converts
-estimated hours to Linear estimate points, and produces a human-reviewable
-Markdown document showing exactly what will be created in Linear.
+Reads the markdown task register (.md) directly as the single source of truth,
+resolves all names and labels against the Linear workspace (using the config
+from Phase 0), converts estimated hours to Linear estimate points, and produces
+a human-reviewable Markdown document showing exactly what will be created in
+Linear.
+
+The markdown task register uses an 18-column pipe table:
+  Row Type | Task ID | Sub-project | Task name | Owner (R) | Accountable (A) |
+  Consulted (C) | Informed (I) | Dependencies | Estimated hours | Start date |
+  End date | % Complete | Status | Sprint | Context / Why | Task Breakdown |
+  Acceptance Criteria
+
+Only rows where Row Type == "TASK" are processed. PROJECT and SUBPROJECT rows
+are ignored.
 
 Usage
 -----
-    python3 parse_spreadsheet.py --spreadsheet task_register.xlsx \
-                                  --config ./output/skill_config.json \
-                                  --output-dir ./output
+    python3 parse_task_register.py --register docs/task_register.md \\
+                                    --config ./output/skill_config.json \\
+                                    --output-dir ./output
 
 The review document (review_document.md) must be approved by the team
 before Phase 2 (execution) is run.
@@ -27,8 +37,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-import openpyxl
-
 sys.path.insert(0, str(Path(__file__).parent))
 from config_schema import (
     SkillConfig, TaskRecord,
@@ -40,51 +48,39 @@ from estimate_conversion import convert_hours_to_points, convert_hours_to_label
 
 
 # ---------------------------------------------------------------------------
-# Spreadsheet parsing
+# Markdown parsing
 # ---------------------------------------------------------------------------
-
-def clean_cell(value) -> str:
-    """Convert a cell value to a clean string, handling None and floats."""
-    if value is None:
-        return ""
-    if isinstance(value, float) and value == int(value):
-        return str(int(value))
-    return str(value).strip()
-
 
 def expand_line_breaks(text: str) -> str:
     """Convert HTML <br> tags (used in Markdown tables) to real newlines."""
     return re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
 
 
-def parse_spreadsheet(path: str, sheet_name: str = "Task Register") -> list[list[str]]:
+def parse_task_register(path: str) -> list[list[str]]:
     """
-    Load the spreadsheet and return all data rows as lists of strings.
-    Skips the header row (row 1). Returns rows where column A is non-empty.
+    Parse the markdown task register and return all TASK rows as lists of strings.
+    Each row is padded to 18 columns. Only rows with Row Type == 'TASK' are returned.
     """
-    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
-
-    # Try the named sheet, fall back to first sheet
-    if sheet_name in wb.sheetnames:
-        ws = wb[sheet_name]
-    else:
-        ws = wb.active
-        print(f"  ⚠ Sheet '{sheet_name}' not found. Using '{ws.title}'.")
-
     rows = []
-    for i, row in enumerate(ws.iter_rows(values_only=True)):
-        if i == 0:
-            continue  # Skip header
-        cells = [clean_cell(c) for c in row]
-        # Pad to at least 16 columns
-        while len(cells) < 16:
-            cells.append("")
-        task_id = cells[SPREADSHEET_COLUMNS["task_id"]]
-        if not task_id:
-            continue  # Skip empty rows
-        rows.append(cells)
-
-    wb.close()
+    in_table = False
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("| Row Type"):
+                in_table = True
+                continue
+            if in_table and re.match(r"^\|[-| ]+\|$", line):
+                continue
+            if in_table and line.startswith("|"):
+                cells = [c.strip() for c in line.split("|")[1:-1]]
+                # Pad to 18 columns
+                while len(cells) < 18:
+                    cells.append("")
+                row_type = cells[SPREADSHEET_COLUMNS["row_type"]]
+                if row_type == "TASK":
+                    rows.append(cells)
+            elif in_table and not line.startswith("|"):
+                break
     return rows
 
 
@@ -94,7 +90,7 @@ def parse_spreadsheet(path: str, sheet_name: str = "Task Register") -> list[list
 
 def resolve_row(cells: list[str], config: SkillConfig, scale_name: str) -> TaskRecord:
     """
-    Convert a raw spreadsheet row into a fully resolved TaskRecord.
+    Convert a raw markdown row into a fully resolved TaskRecord.
     Populates warnings for any fields that cannot be resolved.
     """
     col = SPREADSHEET_COLUMNS
@@ -127,6 +123,8 @@ def resolve_row(cells: list[str], config: SkillConfig, scale_name: str) -> TaskR
     task.moscow = normalise_moscow(task.moscow_raw)
     if task.moscow_raw and not task.moscow:
         task.warnings.append(f"Unrecognised MoSCoW value: '{task.moscow_raw}'")
+    elif task.moscow and not config.find_label(task.moscow, MOSCOW_LABEL_GROUP):
+        task.warnings.append(f"MoSCoW label '{task.moscow}' not found in Linear workspace")
 
     # Resolve owner
     if task.owner_raw:
@@ -216,7 +214,8 @@ def build_issue_body(task: TaskRecord) -> str:
     if task.dependency_ids:
         lines.append(f"- **Dependencies:** {', '.join(task.dependency_ids)}")
 
-    # MoSCoW removed
+    if task.moscow:
+        lines.append(f"- **MoSCoW:** {task.moscow}")
 
     return "\n".join(lines)
 
@@ -236,14 +235,14 @@ def build_review_document(
     """
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     lines = [
-        "# Spreadsheet-to-Linear: Phase 1 Review Document",
+        "# Task Register to Linear: Phase 1 Review Document",
         "",
         f"**Generated:** {now}  ",
         f"**Initiative:** {initiative_name or '*(to be created)*'}  ",
         f"**Team:** {config.team.name}",
         "",
         "> **Instructions:** Review the proposed Linear structure below.",
-        "> Edit any values directly in this document, then return it for Phase 2 execution.",
+        "> Confirm all values are correct, then return this document to trigger Phase 2 execution.",
         "> Items marked ⚠️ require your attention before proceeding.",
         "",
         "---",
@@ -268,7 +267,6 @@ def build_review_document(
         subprojects.setdefault(task.subproject, []).append(task)
 
     for sp_name, sp_tasks in subprojects.items():
-        # Derive project dates from task dates
         dates = [t.end_date_raw for t in sp_tasks if t.end_date_raw]
         target_date = max(dates) if dates else ""
 
@@ -291,6 +289,7 @@ def build_review_document(
                 f"| **Issue Title** | `{task.issue_title}` |",
                 f"| **Assignee** | {task.owner_resolved or f'⚠️ *{task.owner_raw}* (unresolved)'} |",
                 f"| **Status** | {task.status_name} |",
+                f"| **MoSCoW Label** | {task.moscow or '*(none)*'} |",
                 f"| **Estimate** | {task.estimate_label or '*(none)*'} ({task.estimate_points or '—'} pts) |",
                 f"| **Due Date** | {task.end_date_raw or '*(not set)*'} |",
                 f"| **Sprint / Cycle** | {task.cycle_resolved or (f'⚠️ *{task.sprint_raw}* (unresolved)' if task.sprint_raw else '*(none)*')} |",
@@ -336,7 +335,7 @@ def build_review_document(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Phase 1: Parse spreadsheet and produce Linear review document."
+        description="Phase 1: Parse markdown task register and produce Linear review document."
     )
     parser.add_argument("--register", required=True, help="Path to the .md task register")
     parser.add_argument("--config", default="./output/skill_config.json",
@@ -357,14 +356,14 @@ def main():
     config = SkillConfig.load(args.config)
     print(f"  ✓ Config loaded (team: {config.team.name}, scale: {config.estimate_scale})")
 
-    # Parse task register
+    # Parse markdown register
     print(f"  → Reading '{args.register}'...")
     try:
-        rows = parse_spreadsheet(args.register)
+        rows = parse_task_register(args.register)
     except FileNotFoundError:
         print(f"ERROR: Task register not found: {args.register}", file=sys.stderr)
         sys.exit(1)
-    print(f"  ✓ {len(rows)} task rows found.")
+    print(f"  ✓ {len(rows)} TASK rows found.")
 
     # Resolve each row
     tasks = []
@@ -391,6 +390,7 @@ def main():
                 "owner_id": t.owner_id,
                 "owner_raw": t.owner_raw,
                 "accountable_raw": t.accountable_raw,
+                "moscow": t.moscow,
                 "estimate_points": t.estimate_points,
                 "estimate_label": t.estimate_label,
                 "cycle_id": t.cycle_id,

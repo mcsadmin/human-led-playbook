@@ -24,7 +24,10 @@ import os
 # This is the authoritative definition of the expected .xlsx column order.
 # ---------------------------------------------------------------------------
 
-# The 18-column markdown task register layout (0-indexed)
+# The 19-column markdown task register layout (0-indexed)
+# Columns 1-15: planning fields (exported to spreadsheet/Gantt)
+# Column 16: MoSCoW (used for Linear label assignment only)
+# Columns 17-19: coaching fields (used for Linear issue bodies only)
 SPREADSHEET_COLUMNS = {
     "row_type":           0,   # Row Type (PROJECT, SUBPROJECT, TASK)
     "task_id":            1,   # Task ID
@@ -41,9 +44,10 @@ SPREADSHEET_COLUMNS = {
     "percent_complete":  12,   # % Complete
     "status":            13,   # Status
     "sprint":            14,   # Sprint
-    "context_why":       15,   # Context / Why
-    "task_breakdown":    16,   # Task Breakdown
-    "acceptance_criteria": 17, # Acceptance Criteria
+    "moscow":            15,   # MoSCoW priority (Must / Should / Could / Won't)
+    "context_why":       16,   # Context / Why
+    "task_breakdown":    17,   # Task Breakdown
+    "acceptance_criteria": 18, # Acceptance Criteria
 }
 
 # Human-readable column names for error messages
@@ -236,7 +240,7 @@ class TaskRecord:
     task_id: str
     subproject: str
     task_name: str
-    # moscow_raw removed from schema
+    moscow_raw: str
     owner_raw: str
     accountable_raw: str
     consulted_raw: str
@@ -250,8 +254,8 @@ class TaskRecord:
     task_breakdown: str
     acceptance_criteria: str
 
-    # Resolved / derived fields (populated by parse_spreadsheet.py)
-    # moscow removed from schema
+    # Resolved / derived fields (populated by parse_task_register.py)
+    moscow: Optional[str] = None
     owner_id: Optional[str] = None
     owner_resolved: Optional[str] = None
     dependency_ids: list[str] = field(default_factory=list)   # Task IDs (e.g. ["T01"])

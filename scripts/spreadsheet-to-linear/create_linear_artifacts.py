@@ -287,7 +287,9 @@ def ensure_issue(
     elif task.get("status_name"):
         args["state"] = task["status_name"]
 
-    # MoSCoW label removed
+    # MoSCoW label
+    if task.get("moscow"):
+        args["labelNames"] = [task["moscow"]]
 
     # Cycle
     if task.get("cycle_id"):
