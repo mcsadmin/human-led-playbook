@@ -141,6 +141,16 @@ def resolve_row(cells: list[str], config: SkillConfig, scale_name: str) -> TaskR
         if cycle:
             task.cycle_id = cycle.id
             task.cycle_resolved = cycle.name
+            
+            # Guard: Check if task end date falls within the cycle dates
+            if task.end_date_raw and cycle.startsAt and cycle.endsAt:
+                # Linear dates are ISO 8601 with time (e.g. 2026-04-27T00:00:00.000Z)
+                # Task dates are YYYY-MM-DD
+                cycle_start = cycle.startsAt[:10]
+                cycle_end = cycle.endsAt[:10]
+                task_end = task.end_date_raw
+                if task_end < cycle_start or task_end > cycle_end:
+                    task.warnings.append(f"Date mismatch: Task end date ({task_end}) falls outside {cycle.name} ({cycle_start} to {cycle_end})")
         else:
             if config.cycles:
                 task.warnings.append(f"Sprint '{task.sprint_raw}' not found in Linear cycles")
